@@ -97,6 +97,6 @@ func main() {
 			panic(err)
 		}
 	}
-	fmt.Println("10k session verifications took", time.Now().Sub(t0))
+	fmt.Println("10k session verifications took", time.Since(t0))
 
 }
