@@ -23,5 +23,5 @@ Magic Link auth framework for Go
 
 ## Session
 
-* From an `AuthUserRecord`, generate a session ID with `GenerateSessionId()`, send to browser, e.g. as a HTTP cookie, or a Bearer token
+* Generate a session ID with `GenerateSessionId()`, send to browser, e.g. as a HTTP cookie, or a Bearer token
 * Each time the browser sends back the session ID, verify it with `VerifySessionId()`. It will return an `AuthUserRecord` if successful.

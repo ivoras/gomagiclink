@@ -78,7 +78,7 @@ func (mlc *AuthMagicLinkController) StoreUser(user *AuthUserRecord) error {
 func (mlc *AuthMagicLinkController) GenerateChallenge(email string) (challenge string, err error) {
 	// Challenge is in the format:
 	// SALT-EMAIL-EXPTIME-HMAC(SALT || EMAIL || EXPTIME, secredKeyHash)
-	email = strings.ToLower(strings.TrimSpace(email))
+	email = NormalizeEmail(email)
 	salt := make([]byte, saltLength)
 	_, err = rand.Read(salt)
 	if err != nil {
@@ -197,7 +197,7 @@ func NewAuthUserRecord(email string) (aur *AuthUserRecord, err error) {
 	now := time.Now()
 	aur = &AuthUserRecord{
 		ID:              ulid.Make(),
-		Email:           strings.ToLower(strings.TrimSpace(email)),
+		Email:           NormalizeEmail(email),
 		Enabled:         true,
 		FirstLoginTime:  now,
 		RecentLoginTime: now,

@@ -1,4 +1,4 @@
-package main
+package storage
 
 import (
 	"encoding/json"
@@ -8,12 +8,13 @@ import (
 	"regexp"
 
 	"github.com/ivoras/gomagiclink"
+	"github.com/oklog/ulid/v2"
 )
 
 // Stores data in a flat directory with files named like $<userid>$<email>.json
 type FileSystemStorage struct {
 	Directory      string
-	ID2Filename    map[string]string
+	ID2Filename    map[ulid.ULID]string
 	Email2Filename map[string]string
 }
 
@@ -38,7 +39,7 @@ func NewFileSystemStorage(dir string) (result *FileSystemStorage, err error) {
 	}
 	result = &FileSystemStorage{
 		Directory:      dir,
-		ID2Filename:    map[string]string{},
+		ID2Filename:    map[ulid.ULID]string{},
 		Email2Filename: map[string]string{},
 	}
 	// Read existing files
@@ -51,19 +52,52 @@ func NewFileSystemStorage(dir string) (result *FileSystemStorage, err error) {
 		if m == nil {
 			return nil, fmt.Errorf("cannot parse filename: %s", files[f])
 		}
-		result.ID2Filename[m[1]] = files[f]
+		id, err := ulid.ParseStrict(m[1])
+		if err != nil {
+			return nil, err
+		}
+		result.ID2Filename[id] = files[f]
 		result.Email2Filename[m[2]] = files[f]
 	}
 
 	return
 }
 
-func (fss *FileSystemStorage) StoreRecord(rec gomagiclink.RecordWithKeyName) (err error) {
+func (fss *FileSystemStorage) storeRecord(rec gomagiclink.RecordWithKeyName) (err error) {
 	fileName := fmt.Sprintf("%s/%s.json", fss.Directory, rec.GetKeyName())
 	f, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	err = json.NewEncoder(f).Encode(rec)
 	return
+}
+
+func (fss *FileSystemStorage) StoreUser(user *gomagiclink.AuthUserRecord) (err error) {
+	return fss.storeRecord(user)
+}
+
+func (fss *FileSystemStorage) getUserFromFileName(fileName string) (user *gomagiclink.AuthUserRecord, err error) {
+	f, err := os.Open(fmt.Sprintf("%s/%s", fss.Directory, fileName))
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	user = &gomagiclink.AuthUserRecord{}
+	err = json.NewDecoder(f).Decode(user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (fss *FileSystemStorage) GetUserById(id ulid.ULID) (user *gomagiclink.AuthUserRecord, err error) {
+	fileName := fss.ID2Filename[id]
+	return fss.getUserFromFileName(fileName)
+}
+
+func (fss *FileSystemStorage) GetUserByEmail(email string) (user *gomagiclink.AuthUserRecord, err error) {
+	fileName := fss.Email2Filename[gomagiclink.NormalizeEmail(email)]
+	return fss.getUserFromFileName(fileName)
 }
