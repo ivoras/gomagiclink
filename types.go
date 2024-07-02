@@ -1,7 +1,6 @@
 package gomagiclink
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -25,42 +24,163 @@ type RecordWithKeyName interface {
 }
 
 type UserAuthDatabase interface {
-	StoreUser(user AuthUserRecord) error
-	GetUser(id ulid.ULID) (*AuthUserRecord, error)
+	StoreUser(user *AuthUserRecord) error
+	GetUserById(id ulid.ULID) (*AuthUserRecord, error)
 	GetUserByEmail(email string) (*AuthUserRecord, error)
 }
 
-type AuthRecordDatabase interface {
-	StoreRecord(rec AuthRecord) error
-	GetRecord(id ulid.ULID) (*AuthRecord, error)
-}
-
 const challengeSignature = "9"
+const sessionIdSignature = "S"
+const saltLength = 8
 
 var ErrSecretKeyTooShort = errors.New("secret Key too short (min 16 bytes)")
 var ErrInvalidChallenge = errors.New("invalid challenge")
 var ErrBrokenChallenge = errors.New("broken challenge")
+var ErrExpiredChallenge = errors.New("expired challenge")
+var ErrInvalidSessionId = errors.New("invalid session id")
+var ErrBrokenSessionId = errors.New("broken session id")
+var ErrExpiredSessionId = errors.New("expired session id")
 
-type AuthMagicLinkConfig struct {
+type AuthMagicLinkController struct {
 	secretKeyHash        []byte
 	challengeExpDuration time.Duration
+	sessionExpDuration   time.Duration
+	db                   UserAuthDatabase
 }
 
-func NewAuthMagicLinkConfig(secretKey []byte, challengeExpDuration time.Duration) (mlc *AuthMagicLinkConfig, err error) {
+func NewAuthMagicLinkController(secretKey []byte, challengeExpDuration time.Duration, sessionExpDuration time.Duration, db UserAuthDatabase) (mlc *AuthMagicLinkController, err error) {
 	if len(secretKey) < 16 {
 		return nil, ErrSecretKeyTooShort
 	}
 	keyHash := sha256.Sum256(secretKey)
-	return &AuthMagicLinkConfig{
+	return &AuthMagicLinkController{
 		secretKeyHash:        keyHash[:],
 		challengeExpDuration: challengeExpDuration,
+		sessionExpDuration:   sessionExpDuration,
+		db:                   db,
 	}, nil
 }
 
-func (mlc *AuthMagicLinkConfig) makeHMAC(payload []byte) []byte {
+func (mlc *AuthMagicLinkController) makeHMAC(payload []byte) []byte {
 	mac := hmac.New(sha256.New, mlc.secretKeyHash)
 	mac.Write(payload)
 	return mac.Sum(nil)
+}
+
+func (mlc *AuthMagicLinkController) GetUserByEmail(email string) (*AuthUserRecord, error) {
+	return mlc.db.GetUserByEmail(email)
+}
+
+func (mlc *AuthMagicLinkController) StoreUser(user *AuthUserRecord) error {
+	return mlc.db.StoreUser(user)
+}
+
+func (mlc *AuthMagicLinkController) GenerateChallenge(email string) (challenge string, err error) {
+	// Challenge is in the format:
+	// SALT-EMAIL-EXPTIME-HMAC(SALT || EMAIL || EXPTIME, secredKeyHash)
+	email = strings.ToLower(strings.TrimSpace(email))
+	salt := make([]byte, saltLength)
+	_, err = rand.Read(salt)
+	if err != nil {
+		return
+	}
+	expTime := time.Now().Add(mlc.challengeExpDuration).Unix()
+	hmac := mlc.makeHMAC(slices.Concat(salt, []byte{0}, []byte(email), []byte{0}, []byte(strconv.Itoa(int(expTime)))))
+	challenge = fmt.Sprintf("%s%s-%s-%d-%s", challengeSignature, base32.StdEncoding.EncodeToString(salt), base32.StdEncoding.EncodeToString([]byte(email)), expTime, base32.StdEncoding.EncodeToString(hmac))
+	return challenge, nil
+}
+
+func (mlc *AuthMagicLinkController) VerifyChallenge(challenge string) (user *AuthUserRecord, err error) {
+	if !strings.HasPrefix(challenge, challengeSignature) {
+		return nil, ErrInvalidChallenge
+	}
+	challenge = challenge[len(challengeSignature):]
+	parts := strings.Split(challenge, "-")
+	if len(parts) != 4 {
+		return nil, ErrInvalidChallenge
+	}
+
+	salt, err := base32.StdEncoding.DecodeString(parts[0])
+	if err != nil {
+		return nil, ErrInvalidChallenge
+	}
+	email, err := base32.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, ErrInvalidChallenge
+	}
+	expTime, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return nil, ErrInvalidChallenge
+	}
+	if expTime < int(time.Now().Unix()) {
+		return nil, ErrExpiredChallenge
+	}
+	hmac1, err := base32.StdEncoding.DecodeString(parts[3])
+	if err != nil {
+		return nil, ErrInvalidChallenge
+	}
+	hmac2 := mlc.makeHMAC(slices.Concat(salt, []byte{0}, []byte(email), []byte{0}, []byte(strconv.Itoa(int(expTime)))))
+	if !hmac.Equal(hmac1, hmac2) {
+		return nil, ErrBrokenChallenge
+	}
+	return NewAuthUserRecord(string(email))
+}
+
+func (mlc *AuthMagicLinkController) GenerateSessionId(user *AuthUserRecord) (sessionId string, err error) {
+	// Session ID is in the format:
+	// SALT-USER_ID-EXPTIME-HMAC(SALT || USER_ID || EXPTIME, secretKeyHash)
+	salt := make([]byte, saltLength)
+	_, err = rand.Read(salt)
+	if err != nil {
+		return
+	}
+	userId := user.ID.String()
+	expTime := 0
+	if mlc.sessionExpDuration > 0 {
+		expTime = int(time.Now().Add(mlc.sessionExpDuration).Unix())
+	}
+	expTimeStr := strconv.Itoa(expTime)
+
+	hmac := mlc.makeHMAC(slices.Concat(salt, []byte{0}, user.ID.Bytes(), []byte{0}, []byte(expTimeStr)))
+
+	return fmt.Sprintf("%s%s-%s-%s-%s", sessionIdSignature, base32.StdEncoding.EncodeToString(salt), userId, expTimeStr, base32.StdEncoding.EncodeToString(hmac)), nil
+}
+
+func (mlc *AuthMagicLinkController) VerifySessionId(sessionId string) (user *AuthUserRecord, err error) {
+	if !strings.HasPrefix(sessionId, sessionIdSignature) {
+		return nil, ErrInvalidSessionId
+	}
+	sessionId = sessionId[len(sessionIdSignature):]
+	parts := strings.Split(sessionId, "-")
+	if len(parts) != 4 {
+		return nil, ErrInvalidSessionId
+	}
+
+	salt, err := base32.StdEncoding.DecodeString(parts[0])
+	if err != nil {
+		return nil, ErrInvalidSessionId
+	}
+	userId, err := ulid.ParseStrict(parts[1])
+	if err != nil {
+		return nil, ErrInvalidSessionId
+	}
+	expTime, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return nil, ErrInvalidSessionId
+	}
+	if expTime < int(time.Now().Unix()) {
+		return nil, ErrExpiredSessionId
+	}
+	hmac1, err := base32.StdEncoding.DecodeString(parts[3])
+	if err != nil {
+		return nil, ErrInvalidSessionId
+	}
+	hmac2 := mlc.makeHMAC(slices.Concat(salt, []byte{0}, userId.Bytes(), []byte{0}, []byte(parts[2])))
+	if !hmac.Equal(hmac1, hmac2) {
+		return nil, ErrBrokenSessionId
+	}
+	// Now we're sure the session Id is validated, so the userId should be valid
+	return mlc.db.GetUserById(userId)
 }
 
 // AuthUser represents user data
@@ -73,7 +193,7 @@ type AuthUserRecord struct {
 	CustomData      any       `json:"custom_data"` // Apps can attach any kind of custom data to the user record
 }
 
-func NewAuthUserRecord(email string, customData any) (aur *AuthUserRecord, err error) {
+func NewAuthUserRecord(email string) (aur *AuthUserRecord, err error) {
 	now := time.Now()
 	aur = &AuthUserRecord{
 		ID:              ulid.Make(),
@@ -81,7 +201,7 @@ func NewAuthUserRecord(email string, customData any) (aur *AuthUserRecord, err e
 		Enabled:         true,
 		FirstLoginTime:  now,
 		RecentLoginTime: now,
-		CustomData:      customData,
+		CustomData:      nil,
 	}
 	return aur, nil
 }
@@ -98,73 +218,4 @@ func (aur *AuthUserRecord) GetKeyName() string {
 		aur.ID = ulid.Make()
 	}
 	return fmt.Sprintf("$%s$%s", aur.ID.String(), aur.Email)
-}
-
-func (aur *AuthUserRecord) GenerateChallenge(cfg *AuthMagicLinkConfig) (challenge string, err error) {
-	// Challenge is of the format:
-	// 9SALTED_EMAIL-SALT-EXPTIME-HMAC(EXPTIME || SALTED_EMAIL, secredKeyHash)
-	salt := make([]byte, 8)
-	_, err = rand.Read(salt)
-	if err != nil {
-		return
-	}
-	saltedEmailHash := sha256.Sum256(slices.Concat([]byte(aur.Email), []byte{0}, salt))
-	expTime := time.Now().Add(cfg.challengeExpDuration).Unix()
-	hmac := cfg.makeHMAC(slices.Concat([]byte(strconv.Itoa(int(expTime))), []byte{0}, saltedEmailHash[:]))
-	challenge = fmt.Sprintf("%s%s-%s-%d-%s", challengeSignature, base32.StdEncoding.EncodeToString(saltedEmailHash[:]), base32.StdEncoding.EncodeToString(salt), expTime, base32.StdEncoding.EncodeToString(hmac))
-	return challenge, nil
-}
-
-func (aur *AuthUserRecord) VerifyChallenge(cfg *AuthMagicLinkConfig, challenge string) (err error) {
-	parts := strings.Split(challenge, "-")
-	if len(parts) != 3 {
-		return ErrInvalidChallenge
-	}
-	if !strings.HasPrefix(parts[0], challengeSignature) {
-		return ErrInvalidChallenge
-	}
-	parts[0] = parts[0][len(challengeSignature):]
-	saltedEmailHash, err := base32.StdEncoding.DecodeString(parts[0])
-	if err != nil {
-		return ErrInvalidChallenge
-	}
-	salt, err := base32.StdEncoding.DecodeString(parts[1])
-	if err != nil {
-		return ErrInvalidChallenge
-	}
-	hmac1, err := base32.StdEncoding.DecodeString(parts[2])
-	if err != nil {
-		return ErrInvalidChallenge
-	}
-	actualSaltedEmailHash := sha256.Sum256(slices.Concat([]byte(aur.Email), []byte{0}, salt))
-	if !bytes.Equal(actualSaltedEmailHash[:], saltedEmailHash) {
-		return ErrBrokenChallenge
-	}
-	hmac2 := cfg.makeHMAC(saltedEmailHash)
-	if !hmac.Equal(hmac1, hmac2) {
-		return ErrBrokenChallenge
-	}
-	return nil
-}
-
-// AuthRecord is stored in the auth database
-type AuthRecord struct {
-	ID         ulid.ULID `json:"id"`      // Unique identifier
-	UserID     ulid.ULID `json:"user_id"` // Link to AuthUser
-	ExpireTime time.Time `json:"expire_time"`
-	JWT        string    `json:"jwt"`
-}
-
-func (ar *AuthRecord) GetID() ulid.ULID {
-	if IsZeroULID(ar.ID) {
-		ar.ID = ulid.Make()
-	}
-	return ar.ID
-}
-
-func (ar *AuthRecord) GetKeyName() string {
-	if IsZeroULID(ar.ID) {
-		ar.ID = ulid.Make()
-	}
-	return ar.ID.String()
 }
