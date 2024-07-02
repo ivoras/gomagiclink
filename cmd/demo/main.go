@@ -45,6 +45,8 @@ func main() {
 	if err != nil {
 		if err == gomagiclink.ErrUserAlreadyExists {
 			fmt.Println("User already exists")
+		} else {
+			panic(err)
 		}
 	}
 
