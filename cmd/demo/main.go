@@ -39,19 +39,30 @@ func main() {
 		panic(err)
 	}
 
-	email := readLine("Input e-mail address:")
+	email := readLine("Input e-mail address: ")
 
 	challenge, err := magicLinkController.GenerateChallenge(email)
 	if err != nil {
-		panic(err)
+		if err == gomagiclink.ErrUserAlreadyExists {
+			fmt.Println("User already exists")
+		}
 	}
 
-	fmt.Println("Challenge:", challenge)
+	var user *gomagiclink.AuthUserRecord
+	if challenge != "" {
+		fmt.Println("Challenge: ", challenge)
 
-	user, err := magicLinkController.VerifyChallenge(challenge)
-	if err != nil {
-		panic(err)
+		user, err = magicLinkController.VerifyChallenge(challenge)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		user, err = magicLinkController.GetUserByEmail(email)
+		if err != nil {
+			panic(err)
+		}
 	}
+
 	user.CustomData = "data"
 
 	err = magicLinkController.StoreUser(user)
@@ -76,5 +87,14 @@ func main() {
 	if (user2.CustomData).(string) != "data" {
 		panic("CustomData mismatch")
 	}
+
+	t0 := time.Now()
+	for i := 0; i < 10000; i++ {
+		_, err = magicLinkController.VerifySessionId(sessionId)
+		if err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("10k session verifications took", time.Now().Sub(t0))
 
 }

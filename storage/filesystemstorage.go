@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,7 +20,9 @@ type FileSystemStorage struct {
 }
 
 // Files are named like $USER_ID$EMAIL.json
-var reUserEmailFilename = regexp.MustCompilePOSIX(".*/\\$(.+)\\$(.+)\\.json")
+var reUserEmailFilename = regexp.MustCompilePOSIX("_(.+?)_(.+)\\.json")
+
+var ErrUserNotFound = errors.New("user not found")
 
 func NewFileSystemStorage(dir string) (result *FileSystemStorage, err error) {
 	if dir[len(dir)-1] == '/' {
@@ -43,7 +46,7 @@ func NewFileSystemStorage(dir string) (result *FileSystemStorage, err error) {
 		Email2Filename: map[string]string{},
 	}
 	// Read existing files
-	files, err := filepath.Glob(fmt.Sprintf("%s/$*.json", dir))
+	files, err := filepath.Glob(fmt.Sprintf("%s/_*.json", dir))
 	if err != nil {
 		return nil, err
 	}
@@ -63,19 +66,17 @@ func NewFileSystemStorage(dir string) (result *FileSystemStorage, err error) {
 	return
 }
 
-func (fss *FileSystemStorage) storeRecord(rec gomagiclink.RecordWithKeyName) (err error) {
-	fileName := fmt.Sprintf("%s/%s.json", fss.Directory, rec.GetKeyName())
+func (fss *FileSystemStorage) StoreUser(user *gomagiclink.AuthUserRecord) (err error) {
+	fileName := fmt.Sprintf("%s/%s.json", fss.Directory, user.GetKeyName())
 	f, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	err = json.NewEncoder(f).Encode(rec)
+	err = json.NewEncoder(f).Encode(user)
+	fss.Email2Filename[user.Email] = fileName
+	fss.ID2Filename[user.ID] = fileName
 	return
-}
-
-func (fss *FileSystemStorage) StoreUser(user *gomagiclink.AuthUserRecord) (err error) {
-	return fss.storeRecord(user)
 }
 
 func (fss *FileSystemStorage) getUserFromFileName(fileName string) (user *gomagiclink.AuthUserRecord, err error) {
@@ -93,11 +94,22 @@ func (fss *FileSystemStorage) getUserFromFileName(fileName string) (user *gomagi
 }
 
 func (fss *FileSystemStorage) GetUserById(id ulid.ULID) (user *gomagiclink.AuthUserRecord, err error) {
-	fileName := fss.ID2Filename[id]
+	fileName, ok := fss.ID2Filename[id]
+	if !ok {
+		return nil, fmt.Errorf("file not found for user id %s: %w", id.String(), ErrUserNotFound)
+	}
 	return fss.getUserFromFileName(fileName)
 }
 
 func (fss *FileSystemStorage) GetUserByEmail(email string) (user *gomagiclink.AuthUserRecord, err error) {
-	fileName := fss.Email2Filename[gomagiclink.NormalizeEmail(email)]
+	fileName, ok := fss.Email2Filename[gomagiclink.NormalizeEmail(email)]
+	if !ok {
+		return nil, fmt.Errorf("file not found for user id %s: %w", email, ErrUserNotFound)
+	}
 	return fss.getUserFromFileName(fileName)
+}
+
+func (fss *FileSystemStorage) UserExistsByEmail(email string) (exists bool) {
+	_, exists = fss.Email2Filename[gomagiclink.NormalizeEmail(email)]
+	return
 }

@@ -24,6 +24,7 @@ type RecordWithKeyName interface {
 }
 
 type UserAuthDatabase interface {
+	UserExistsByEmail(email string) bool
 	StoreUser(user *AuthUserRecord) error
 	GetUserById(id ulid.ULID) (*AuthUserRecord, error)
 	GetUserByEmail(email string) (*AuthUserRecord, error)
@@ -33,6 +34,7 @@ const challengeSignature = "9"
 const sessionIdSignature = "S"
 const saltLength = 8
 
+var ErrUserAlreadyExists = errors.New("user already exists")
 var ErrSecretKeyTooShort = errors.New("secret Key too short (min 16 bytes)")
 var ErrInvalidChallenge = errors.New("invalid challenge")
 var ErrBrokenChallenge = errors.New("broken challenge")
@@ -79,6 +81,9 @@ func (mlc *AuthMagicLinkController) GenerateChallenge(email string) (challenge s
 	// Challenge is in the format:
 	// SALT-EMAIL-EXPTIME-HMAC(SALT || EMAIL || EXPTIME, secredKeyHash)
 	email = NormalizeEmail(email)
+	if mlc.db.UserExistsByEmail(email) {
+		return "", ErrUserAlreadyExists
+	}
 	salt := make([]byte, saltLength)
 	_, err = rand.Read(salt)
 	if err != nil {
@@ -86,7 +91,7 @@ func (mlc *AuthMagicLinkController) GenerateChallenge(email string) (challenge s
 	}
 	expTime := time.Now().Add(mlc.challengeExpDuration).Unix()
 	hmac := mlc.makeHMAC(slices.Concat(salt, []byte{0}, []byte(email), []byte{0}, []byte(strconv.Itoa(int(expTime)))))
-	challenge = fmt.Sprintf("%s%s-%s-%d-%s", challengeSignature, base32.StdEncoding.EncodeToString(salt), base32.StdEncoding.EncodeToString([]byte(email)), expTime, base32.StdEncoding.EncodeToString(hmac))
+	challenge = fmt.Sprintf("%s%s-%s-%d-%s", challengeSignature, encodeToString(salt), encodeToString([]byte(email)), expTime, encodeToString(hmac))
 	return challenge, nil
 }
 
@@ -100,11 +105,11 @@ func (mlc *AuthMagicLinkController) VerifyChallenge(challenge string) (user *Aut
 		return nil, ErrInvalidChallenge
 	}
 
-	salt, err := base32.StdEncoding.DecodeString(parts[0])
+	salt, err := decodeFromString(parts[0])
 	if err != nil {
 		return nil, ErrInvalidChallenge
 	}
-	email, err := base32.StdEncoding.DecodeString(parts[1])
+	email, err := decodeFromString(parts[1])
 	if err != nil {
 		return nil, ErrInvalidChallenge
 	}
@@ -115,7 +120,7 @@ func (mlc *AuthMagicLinkController) VerifyChallenge(challenge string) (user *Aut
 	if expTime < int(time.Now().Unix()) {
 		return nil, ErrExpiredChallenge
 	}
-	hmac1, err := base32.StdEncoding.DecodeString(parts[3])
+	hmac1, err := decodeFromString(parts[3])
 	if err != nil {
 		return nil, ErrInvalidChallenge
 	}
@@ -143,7 +148,7 @@ func (mlc *AuthMagicLinkController) GenerateSessionId(user *AuthUserRecord) (ses
 
 	hmac := mlc.makeHMAC(slices.Concat(salt, []byte{0}, user.ID.Bytes(), []byte{0}, []byte(expTimeStr)))
 
-	return fmt.Sprintf("%s%s-%s-%s-%s", sessionIdSignature, base32.StdEncoding.EncodeToString(salt), userId, expTimeStr, base32.StdEncoding.EncodeToString(hmac)), nil
+	return fmt.Sprintf("%s%s-%s-%s-%s", sessionIdSignature, encodeToString(salt), userId, expTimeStr, encodeToString(hmac)), nil
 }
 
 func (mlc *AuthMagicLinkController) VerifySessionId(sessionId string) (user *AuthUserRecord, err error) {
@@ -156,7 +161,7 @@ func (mlc *AuthMagicLinkController) VerifySessionId(sessionId string) (user *Aut
 		return nil, ErrInvalidSessionId
 	}
 
-	salt, err := base32.StdEncoding.DecodeString(parts[0])
+	salt, err := decodeFromString(parts[0])
 	if err != nil {
 		return nil, ErrInvalidSessionId
 	}
@@ -171,7 +176,7 @@ func (mlc *AuthMagicLinkController) VerifySessionId(sessionId string) (user *Aut
 	if expTime < int(time.Now().Unix()) {
 		return nil, ErrExpiredSessionId
 	}
-	hmac1, err := base32.StdEncoding.DecodeString(parts[3])
+	hmac1, err := decodeFromString(parts[3])
 	if err != nil {
 		return nil, ErrInvalidSessionId
 	}
@@ -217,5 +222,15 @@ func (aur *AuthUserRecord) GetKeyName() string {
 	if IsZeroULID(aur.ID) {
 		aur.ID = ulid.Make()
 	}
-	return fmt.Sprintf("$%s$%s", aur.ID.String(), aur.Email)
+	return fmt.Sprintf("_%s_%s", aur.ID.String(), aur.Email)
+}
+
+// Binary-string encoding
+func encodeToString(b []byte) string {
+	return strings.TrimRight(base32.StdEncoding.EncodeToString(b), "=")
+}
+
+func decodeFromString(s string) ([]byte, error) {
+	s = s + strings.Repeat("=", 8-(len(s)%8))
+	return base32.StdEncoding.DecodeString(s)
 }
