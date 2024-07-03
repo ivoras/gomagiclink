@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ .Title }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.1/css/bulma.min.css">
+  </head>
+  <body>
+  <section class="section">
+    <div class="container">
+      <h1 class="title">
+        Magic link created
+      </h1>
+      <p class="subtitle">
+        In real applications, this link would have been sent to the user's email address - this is the
+        "magic link" we're looking for. It should have also be printed in your server console. This
+        particular magic link is tied to the e-mail address <span class="strong">{{ .Email }}</span>.
+      </p>
+      <p>
+        Here, for expediency, we'll just print it out and allow you to click on it from this browser
+        window. Note that this is NOT how it should work in production!.
+      </p>
+      <p>
+        <a href="{{ .Url }}">{{ .Url }}</a>
+      </p>
+    </div>
+  </section>
+  </body>
+</html>

@@ -6,7 +6,8 @@ Magic Link auth framework for Go
 
 * We don't write down information about the user until they verify the challenge
 * We don't write down session information at all, but verify the cookie JWT-style
-* We allow the app to attach arbitrary data about a user
+* We allow the app to attach arbitrary data about a user, and store it with the user record
+* We allw easy implementation of different data stores
 
 # Workflows
 

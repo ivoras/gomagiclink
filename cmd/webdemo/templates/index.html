@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ .Title }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.1/css/bulma.min.css">
+  </head>
+  <body>
+  <section class="section">
+    <div class="container">
+      <h1 class="title">
+        Magic Link Login Demo
+      </h1>
+      <p class="subtitle">
+        <strong>Congratulations!</strong> If you see this, you have successfully logged in to this site
+        with your e-mail address, by using a "magic link."
+      </p>
+      <p>
+        You have visited this page {{ .Counter }} times total. Refresh the page to see the number increase.
+      </p>
+      <p>
+        Feel free to click on this <a href="/logout">Logout</a> link to go through the process again.
+      </p>
+    </div>
+  </section>
+  </body>
+</html>

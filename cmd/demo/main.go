@@ -43,26 +43,15 @@ func main() {
 
 	challenge, err := magicLinkController.GenerateChallenge(email)
 	if err != nil {
-		if err == gomagiclink.ErrUserAlreadyExists {
-			fmt.Println("User already exists")
-		} else {
-			panic(err)
-		}
+		panic(err)
 	}
 
 	var user *gomagiclink.AuthUserRecord
-	if challenge != "" {
-		fmt.Println("Challenge: ", challenge)
+	fmt.Println("Challenge: ", challenge)
 
-		user, err = magicLinkController.VerifyChallenge(challenge)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		user, err = magicLinkController.GetUserByEmail(email)
-		if err != nil {
-			panic(err)
-		}
+	user, err = magicLinkController.VerifyChallenge(challenge)
+	if err != nil {
+		panic(err)
 	}
 
 	user.CustomData = "data"

@@ -35,6 +35,7 @@ const sessionIdSignature = "S"
 const saltLength = 8
 
 var ErrUserAlreadyExists = errors.New("user already exists")
+var ErrUserNotFound = errors.New("user not found")
 var ErrSecretKeyTooShort = errors.New("secret Key too short (min 16 bytes)")
 var ErrInvalidChallenge = errors.New("invalid challenge")
 var ErrBrokenChallenge = errors.New("broken challenge")
@@ -77,13 +78,14 @@ func (mlc *AuthMagicLinkController) StoreUser(user *AuthUserRecord) error {
 	return mlc.db.StoreUser(user)
 }
 
+func (mlc *AuthMagicLinkController) UserExistsByEmail(email string) bool {
+	return mlc.db.UserExistsByEmail(email)
+}
+
 func (mlc *AuthMagicLinkController) GenerateChallenge(email string) (challenge string, err error) {
 	// Challenge is in the format:
 	// SALT-EMAIL-EXPTIME-HMAC(SALT || EMAIL || EXPTIME, secredKeyHash)
 	email = NormalizeEmail(email)
-	if mlc.db.UserExistsByEmail(email) {
-		return "", ErrUserAlreadyExists
-	}
 	salt := make([]byte, saltLength)
 	_, err = rand.Read(salt)
 	if err != nil {
@@ -128,7 +130,19 @@ func (mlc *AuthMagicLinkController) VerifyChallenge(challenge string) (user *Aut
 	if !hmac.Equal(hmac1, hmac2) {
 		return nil, ErrBrokenChallenge
 	}
-	return NewAuthUserRecord(string(email))
+	// We've verified the challenge, so assume the user is real.
+	// Now either create a new AuthUserRecord or load an existing one.
+	user, err = mlc.db.GetUserByEmail(string(email))
+	if err != nil {
+		if err == ErrUserNotFound {
+			user, err = NewAuthUserRecord(string(email))
+		}
+	}
+
+	if user != nil {
+		user.RecentLoginTime = time.Now()
+	}
+	return
 }
 
 func (mlc *AuthMagicLinkController) GenerateSessionId(user *AuthUserRecord) (sessionId string, err error) {

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,8 +20,6 @@ type FileSystemStorage struct {
 
 // Files are named like $USER_ID$EMAIL.json
 var reUserEmailFilename = regexp.MustCompilePOSIX("_(.+?)_(.+)\\.json")
-
-var ErrUserNotFound = errors.New("user not found")
 
 func NewFileSystemStorage(dir string) (result *FileSystemStorage, err error) {
 	if dir[len(dir)-1] == '/' {
@@ -96,7 +93,7 @@ func (fss *FileSystemStorage) getUserFromFileName(fileName string) (user *gomagi
 func (fss *FileSystemStorage) GetUserById(id ulid.ULID) (user *gomagiclink.AuthUserRecord, err error) {
 	fileName, ok := fss.ID2Filename[id]
 	if !ok {
-		return nil, fmt.Errorf("file not found for user id %s: %w", id.String(), ErrUserNotFound)
+		return nil, gomagiclink.ErrUserNotFound
 	}
 	return fss.getUserFromFileName(fileName)
 }
@@ -104,7 +101,7 @@ func (fss *FileSystemStorage) GetUserById(id ulid.ULID) (user *gomagiclink.AuthU
 func (fss *FileSystemStorage) GetUserByEmail(email string) (user *gomagiclink.AuthUserRecord, err error) {
 	fileName, ok := fss.Email2Filename[gomagiclink.NormalizeEmail(email)]
 	if !ok {
-		return nil, fmt.Errorf("file not found for user id %s: %w", email, ErrUserNotFound)
+		return nil, gomagiclink.ErrUserNotFound
 	}
 	return fss.getUserFromFileName(fileName)
 }
