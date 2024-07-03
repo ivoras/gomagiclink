@@ -38,6 +38,7 @@ const saltLength = 8
 
 var ErrUserAlreadyExists = errors.New("user already exists")
 var ErrUserNotFound = errors.New("user not found")
+var ErrUserDisabled = errors.New("user disabled")
 var ErrSecretKeyTooShort = errors.New("secret Key too short (min 16 bytes)")
 var ErrInvalidChallenge = errors.New("invalid challenge")
 var ErrBrokenChallenge = errors.New("broken challenge")
@@ -153,6 +154,9 @@ func (mlc *AuthMagicLinkController) VerifyChallenge(challenge string) (user *Aut
 	}
 
 	if user != nil {
+		if !user.Enabled {
+			return nil, ErrUserDisabled
+		}
 		user.RecentLoginTime = time.Now()
 	}
 	return
@@ -216,12 +220,16 @@ func (mlc *AuthMagicLinkController) VerifySessionId(sessionId string) (user *Aut
 		return nil, ErrBrokenSessionId
 	}
 	// Now we're sure the session Id is validated, so the userId should be valid
-	return mlc.db.GetUserById(userId)
+	user, err = mlc.db.GetUserById(userId)
+	if !user.Enabled {
+		return nil, ErrUserDisabled
+	}
+	return
 }
 
 // AuthUser represents user data
 type AuthUserRecord struct {
-	ID              ulid.ULID `json:"id"`    // Unique identifier, used to link to AuthRecords
+	ID              ulid.ULID `json:"id"`    // Unique identifier
 	Email           string    `json:"email"` // Also must be unique
 	Enabled         bool      `json:"enabled"`
 	FirstLoginTime  time.Time `json:"first_login_time"`
