@@ -46,6 +46,8 @@ var ErrInvalidSessionId = errors.New("invalid session id")
 var ErrBrokenSessionId = errors.New("broken session id")
 var ErrExpiredSessionId = errors.New("expired session id")
 
+// All functionalities needed to implement the Magic Link login system is available
+// through the AuthMagicLinkController.
 type AuthMagicLinkController struct {
 	secretKeyHash        []byte
 	challengeExpDuration time.Duration
