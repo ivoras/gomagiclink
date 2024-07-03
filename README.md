@@ -1,6 +1,12 @@
 # gomagiclink
 
-Magic Link auth framework for Go
+Magic Link authentication framework for Go. The idea is to avoid asking the user for the password every
+time they login, and send them a "magic link" to their e-mail address. Once they confirm the login by
+clicking the link, the user is considered logged in.
+
+This package implements the core part of this process, by generating cryptographically safe magic link
+challenge and a session id (useful for web cookies). To keep the process safe, you need to maintain
+the security of the secret key, passed to the `NewAuthMagicLinkController()` function.
 
 # Design decisions
 
@@ -26,3 +32,8 @@ Magic Link auth framework for Go
 
 * Generate a session ID with `GenerateSessionId()`, send to browser, e.g. as a HTTP cookie, or a Bearer token
 * Each time the browser sends back the session ID, verify it with `VerifySessionId()`. It will return an `AuthUserRecord` if successful.
+
+## Sending e-mail
+
+Configuring an e-mail server, etc. is waaaay out of scope for this package, but
+[here's a good e-mail library for Go](https://github.com/jordan-wright/email).
