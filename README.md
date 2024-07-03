@@ -29,16 +29,14 @@ See these examples for more info:
 * Construct an `AuthUserDatabase`
 * Construct an `AuthMagicLinkController`
 * Collect user e-mail (web form, etc)
-* Check if the user exists with `GetUserByEmail()`
-* If not, generate a string challenge (magic cookie) with `GenerateChallenge()`, send to user's e-mail
+* Generate a challenge string (magic cookie) with `GenerateChallenge()`, construct a link with it and send it to user's e-mail
 * Verify the challenge with `VerifyChallenge()`. If successful, it will return an `UserAuthRecord`
-* Optionally attach custom user data to the `CustomData` field of the record.
-* Store the `AuthUserRecord` in the `AuthUserDatabase`
+* Optionally attach custom user data to the `CustomData` field of the record and store the `AuthUserRecord` with `StoreUser()`. Note that this data will be stored and retrieved as JSON, so the `CustomData` needs to be of a type that can survive a round-trip through JSON. For example, `int`s will be returned as `float64`s.
 
 ## Session
 
 * Generate a session ID with `GenerateSessionId()`, send to browser, e.g. as a HTTP cookie, or a Bearer token
-* Each time the browser sends back the session ID, verify it with `VerifySessionId()`. It will return an `AuthUserRecord` if successful.
+* Each time the browser sends back the session ID, verify it with `VerifySessionId()`. It will return an `AuthUserRecord` if successful. Inspect the `CustomData` field if you've set it before.
 
 ## Sending e-mail
 
