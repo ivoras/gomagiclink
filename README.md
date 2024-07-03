@@ -4,7 +4,7 @@ Magic Link authentication framework for Go. The idea is to avoid asking the user
 time they login, and send them a "magic link" to their e-mail address. Once they confirm the login by
 clicking the link, the user is considered logged in.
 
-This package implements the core part of this process, by generating cryptographically safe magic link
+This package implements the core part of this process, by generating a cryptographically safe magic link
 challenge and a session id (useful for web cookies). To keep the process safe, you need to maintain
 the security of the secret key, passed to the `NewAuthMagicLinkController()` function.
 
@@ -13,9 +13,14 @@ the security of the secret key, passed to the `NewAuthMagicLinkController()` fun
 * We don't write down information about the user until they verify the challenge
 * We don't write down session information at all, but verify the cookie JWT-style
 * We allow the app to attach arbitrary data about a user, and store it with the user record
-* We allw easy implementation of different data stores
+* We allow easy implementation of different data stores
 
 # Workflows
+
+See these examples for more info:
+
+* [the web app example](cmd/webdemo/)
+* [the CLI example](cmd/demo/)
 
 ## Registration / Login
 
