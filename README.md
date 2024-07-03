@@ -1,3 +1,5 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/ivoras/gomagiclink.svg)](https://pkg.go.dev/github.com/ivoras/gomagiclink)
+
 # gomagiclink
 
 Magic Link authentication framework for Go. The idea is to avoid asking the user for the password every
