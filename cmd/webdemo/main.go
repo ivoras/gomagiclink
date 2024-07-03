@@ -72,6 +72,7 @@ func wwwError(w http.ResponseWriter, code int, msg string) {
 	log.Println("ERROR:", msg)
 }
 
+// Shows the app, or redirects to /login if the HTTP cookie isn't set or the session id is invalid
 func wwwRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
@@ -101,6 +102,9 @@ func wwwRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// This is the actual web app. We're just incrementing the counter here and making
+	// use of the CustomData feature.
+
 	user.CustomData = user.CustomData.(float64) + 1
 	err = mlink.StoreUser(user)
 	if err != nil {
@@ -122,6 +126,7 @@ func wwwRoot(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Just shows the login form
 func wwwLogin(w http.ResponseWriter, r *http.Request) {
 	p, err := loadPage("login.html", "Magic Link Login")
 	if err != nil {
@@ -134,6 +139,8 @@ func wwwLogin(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Accepts an email address sent by the login form, creates the magic link challenge for it,
+// and sends it to the user. In this demo, it just shows the magic link to the user.
 func wwwChallenge(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -173,6 +180,11 @@ func wwwChallenge(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Verifies the challenge present in the magic link sent to the user's e-mail address.
+// If it's ok, this endpoint:
+//   - Creates or retrieves the AuthUserRecord,
+//   - Generates the session id
+//   - Creates a HTTP cookie and adds the session ID to it
 func wwwVerifyChallenge(w http.ResponseWriter, r *http.Request) {
 	challenge := r.URL.Query().Get("challenge")
 	if challenge == "" {
@@ -218,6 +230,7 @@ func wwwVerifyChallenge(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+// Just deletes the HTTP cookie.
 func wwwLogout(w http.ResponseWriter, r *http.Request) {
 	// Remove the cookie
 	http.SetCookie(w, &http.Cookie{
