@@ -51,6 +51,10 @@ type AuthMagicLinkController struct {
 	db                   UserAuthDatabase
 }
 
+// NewAuthMagicLinkController configures and creates a new instance of the AuthMagicLinkController.
+// The secretKey needs to be kept safe. To provide your own storage mechanism for the magic
+// link data, implement the UserAuthDatabase interface. There are file system and SQL database
+// implementations provided.
 func NewAuthMagicLinkController(secretKey []byte, challengeExpDuration time.Duration, sessionExpDuration time.Duration, db UserAuthDatabase) (mlc *AuthMagicLinkController, err error) {
 	if len(secretKey) < 16 {
 		return nil, ErrSecretKeyTooShort
