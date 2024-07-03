@@ -2,7 +2,9 @@
 
 Magic Link authentication framework for Go. The idea is to avoid asking the user for the password every
 time they login, and send them a "magic link" to their e-mail address. Once they confirm the login by
-clicking the link, the user is considered logged in.
+clicking the link, the user is considered logged in. This has the advantage of not handling user
+passwords at all, and the disadvantage that if their e-mail account is compromised, this will cascade
+to services dependant on the e-mail account, such as ones implementing the magic link login.
 
 This package implements the core part of this process, by generating a cryptographically safe magic link
 challenge and a session id (useful for web cookies). To keep the process safe, you need to maintain
