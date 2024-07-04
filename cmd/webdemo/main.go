@@ -16,6 +16,7 @@ import (
 )
 
 const cookieName = "MLCOOKIE"
+const cookieDurationSeconds = 3600
 const wwwListen = "localhost:8002"
 
 var mlink *gomagiclink.AuthMagicLinkController
@@ -223,7 +224,7 @@ func wwwVerifyChallenge(w http.ResponseWriter, r *http.Request) {
 		Name:     cookieName,
 		Value:    sessionId,
 		Path:     "/",
-		MaxAge:   3600,
+		MaxAge:   cookieDurationSeconds,
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, &cookie)
