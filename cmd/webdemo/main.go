@@ -207,7 +207,7 @@ func wwwVerifyChallenge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user.CustomData == nil {
-		user.CustomData = float64(0) // CustomData goes through JSON and returns as float64
+		user.CustomData = float64(0) // CustomData goes through JSON, so all numbers are float64
 	}
 	err = mlink.StoreUser(user)
 	if err != nil {
