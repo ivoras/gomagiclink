@@ -110,3 +110,7 @@ func (fss *FileSystemStorage) UserExistsByEmail(email string) (exists bool) {
 	_, exists = fss.Email2Filename[gomagiclink.NormalizeEmail(email)]
 	return
 }
+
+func (fss *FileSystemStorage) GetUserCount() (int, error) {
+	return len(fss.Email2Filename), nil
+}

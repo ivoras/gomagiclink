@@ -30,6 +30,7 @@ type UserAuthDatabase interface {
 	StoreUser(user *AuthUserRecord) error
 	GetUserById(id ulid.ULID) (*AuthUserRecord, error)
 	GetUserByEmail(email string) (*AuthUserRecord, error)
+	GetUserCount() (int, error)
 }
 
 const challengeSignature = "9"
@@ -89,6 +90,10 @@ func (mlc *AuthMagicLinkController) StoreUser(user *AuthUserRecord) error {
 
 func (mlc *AuthMagicLinkController) UserExistsByEmail(email string) bool {
 	return mlc.db.UserExistsByEmail(email)
+}
+
+func (mlc *AuthMagicLinkController) GetUserCount() (int, error) {
+	return mlc.db.GetUserCount()
 }
 
 // GenerateChallenge creates a challenge string to be used for constructing the magic link.
@@ -229,9 +234,10 @@ func (mlc *AuthMagicLinkController) VerifySessionId(sessionId string) (user *Aut
 
 // AuthUser represents user data
 type AuthUserRecord struct {
-	ID              ulid.ULID `json:"id"`    // Unique identifier
-	Email           string    `json:"email"` // Also must be unique
+	ID              ulid.ULID `json:"id"` // Unique identifier
 	Enabled         bool      `json:"enabled"`
+	Email           string    `json:"email"` // Also must be unique
+	AccessLevel     int       `json:"access_level"`
 	FirstLoginTime  time.Time `json:"first_login_time"`
 	RecentLoginTime time.Time `json:"recent_login_time"`
 	CustomData      any       `json:"custom_data"` // Apps can attach any kind of custom data to the user record

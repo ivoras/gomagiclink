@@ -78,9 +78,14 @@ func (st *SQLStorage) GetUserByEmail(email string) (user *gomagiclink.AuthUserRe
 
 func (st *SQLStorage) UserExistsByEmail(email string) (exists bool) {
 	var count int
-	err := st.db.QueryRow(fmt.Sprintf("SELECT count(*) FROM %s WHERE email=?", st.tableName), gomagiclink.NormalizeEmail(email)).Scan(&count)
+	err := st.db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE email=?", st.tableName), gomagiclink.NormalizeEmail(email)).Scan(&count)
 	if err != nil {
 		return false
 	}
 	return count > 0
+}
+
+func (st *SQLStorage) GetUserCount() (n int, err error) {
+	err = st.db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", st.tableName)).Scan(&n)
+	return
 }

@@ -46,6 +46,7 @@ func main() {
 	http.HandleFunc("/verify", wwwVerifyChallenge)
 	http.HandleFunc("/logout", wwwLogout)
 
+	log.Println("Listening on", wwwListen)
 	log.Println(http.ListenAndServe(wwwListen, Logger(os.Stderr, http.DefaultServeMux)))
 }
 
@@ -209,6 +210,9 @@ func wwwVerifyChallenge(w http.ResponseWriter, r *http.Request) {
 	}
 	if user.CustomData == nil {
 		user.CustomData = float64(0) // CustomData goes through JSON, so all numbers are float64
+	}
+	if count, err := mlink.GetUserCount(); err == nil && count == 0 { // 1st user, make it an admin
+		user.AccessLevel = 1000
 	}
 	err = mlink.StoreUser(user)
 	if err != nil {
