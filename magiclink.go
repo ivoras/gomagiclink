@@ -30,7 +30,8 @@ type UserAuthDatabase interface {
 	StoreUser(user *AuthUserRecord) error
 	GetUserById(id ulid.ULID) (*AuthUserRecord, error)
 	GetUserByEmail(email string) (*AuthUserRecord, error)
-	GetUserCount() (int, error)
+	GetUserCount() (int, error) // Slow
+	UsersExist() (bool, error)  // Fast
 }
 
 const challengeSignature = "9"
@@ -94,6 +95,10 @@ func (mlc *AuthMagicLinkController) UserExistsByEmail(email string) bool {
 
 func (mlc *AuthMagicLinkController) GetUserCount() (int, error) {
 	return mlc.db.GetUserCount()
+}
+
+func (mlc *AuthMagicLinkController) UsersExist() (bool, error) {
+	return mlc.db.UsersExist()
 }
 
 // GenerateChallenge creates a challenge string to be used for constructing the magic link.
@@ -229,6 +234,7 @@ func (mlc *AuthMagicLinkController) VerifySessionId(sessionId string) (user *Aut
 	if !user.Enabled {
 		return nil, ErrUserDisabled
 	}
+	user.RecentLoginTime = time.Now()
 	return
 }
 

@@ -114,3 +114,7 @@ func (fss *FileSystemStorage) UserExistsByEmail(email string) (exists bool) {
 func (fss *FileSystemStorage) GetUserCount() (int, error) {
 	return len(fss.Email2Filename), nil
 }
+
+func (fss *FileSystemStorage) UsersExist() (bool, error) {
+	return len(fss.Email2Filename) > 0, nil
+}

@@ -89,3 +89,8 @@ func (st *SQLStorage) GetUserCount() (n int, err error) {
 	err = st.db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", st.tableName)).Scan(&n)
 	return
 }
+
+func (st *SQLStorage) UsersExist() (exist bool, err error) {
+	err = st.db.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT * FROM %s)", st.tableName)).Scan(&exist)
+	return
+}
