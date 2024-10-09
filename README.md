@@ -12,6 +12,8 @@ This package implements the core part of this process, by generating a cryptogra
 challenge and a session id (useful for web cookies). To keep the process safe, you need to maintain
 the security of the secret key, passed to the `NewAuthMagicLinkController()` function.
 
+[API reference](https://pkg.go.dev/github.com/ivoras/gomagiclink)
+
 # Design decisions
 
 * We don't write down information about the user until they verify the challenge
@@ -28,17 +30,17 @@ See these examples for more info:
 
 ## Registration / Login
 
-* Construct an `AuthUserDatabase`
-* Construct an `AuthMagicLinkController`
-* Collect user e-mail (web form, etc)
-* Generate a challenge string (magic cookie) with `GenerateChallenge()`, construct a link with it and send it to user's e-mail
-* Verify the challenge with `VerifyChallenge()`. If successful, it will return an `UserAuthRecord`
-* Optionally attach custom user data to the `CustomData` field of the record and store the `AuthUserRecord` with `StoreUser()`. Note that this data will be stored and retrieved as JSON, so the `CustomData` needs to be of a type that can survive a round-trip through JSON. For example, `int`s will be returned as `float64`s.
+1. Construct an `AuthUserDatabase`
+2. Construct an `AuthMagicLinkController`
+3. Collect user e-mail (web form, etc)
+4. Generate a challenge string (magic cookie) with `GenerateChallenge()`, construct a link with it and send it to user's e-mail
+5. Verify the challenge with `VerifyChallenge()`. If successful, it will return an `UserAuthRecord`
+6. Optionally attach custom user data to the `CustomData` field of the record and store the `AuthUserRecord` with `StoreUser()`. Note that this data will be stored and retrieved as JSON, so the `CustomData` needs to be of a type that can survive a round-trip through JSON. For example, `int`s will be returned as `float64`s.
 
 ## Session
 
-* Generate a session ID with `GenerateSessionId()`, send to browser, e.g. as a HTTP cookie, or a Bearer token
-* Each time the browser sends back the session ID, verify it with `VerifySessionId()`. It will return an `AuthUserRecord` if successful. Inspect the `CustomData` field if you've set it before.
+1. Generate a session ID with `GenerateSessionId()`, send to browser, e.g. as a HTTP cookie, or a Bearer token
+2. Each time the browser sends back the session ID, verify it with `VerifySessionId()`. It will return an `AuthUserRecord` if successful. Inspect the `CustomData` field if you've set it before.
 
 ## Sending e-mail
 
