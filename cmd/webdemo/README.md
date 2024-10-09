@@ -6,6 +6,8 @@ maintains a simple local database of users.
 
 It implements a complete login and logout cycle.
 
+To use the demo, run the webdemo executable locally and point your browser to `http://localhost:8002/`.
+
 # Notes
 
 This example uses SQLite to store user information. The gomagiclink library itself doesn't require any 
