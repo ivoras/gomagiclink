@@ -117,6 +117,7 @@ func wwwRoot(w http.ResponseWriter, r *http.Request) {
 	p, err := loadPage("index.html", "Session counter")
 	if err != nil {
 		wwwError(w, http.StatusInternalServerError, "Can't load index template")
+		return
 	}
 
 	p.tpl.Execute(w, struct {
