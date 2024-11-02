@@ -32,7 +32,7 @@ func main() {
 	}
 	mlink, err = gomagiclink.NewAuthMagicLinkController(
 		[]byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit."), // Our secret key
-		time.Hour,    // User change (i.e. magic link) expiration
+		time.Hour,    // User challenge (i.e. magic link) expiration
 		time.Hour*24, // Session ID (i.e. cookied) expiration
 		mlStorage,    // Storage engine for user data
 	)
