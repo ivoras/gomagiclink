@@ -41,7 +41,7 @@ By the nature of this login system, unique users are represented by unique e-mai
 
 ## Session
 
-After a magic link chanllenge has been completed, you can optionally create a session id to store in a cookie.
+After a magic link challenge has been verified, you can optionally create a session id to store in a cookie.
 
 1. Generate a session ID with `GenerateSessionId()`, send it to the browser, e.g. as a HTTP cookie, or a Bearer token
 2. Each time the browser sends back the session ID, verify it with `VerifySessionId()`. It will return an `AuthUserRecord` if successful. Inspect the `CustomData` field if you've set it before.
