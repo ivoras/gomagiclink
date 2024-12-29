@@ -16,9 +16,9 @@ the security of the secret key, passed to the `NewAuthMagicLinkController()` fun
 
 # Design decisions
 
-* We don't write down information about the user until they verify the challenge
+* We don't write down information about the user until they verify the challenge; then we create the user record.
 * We don't write down session information at all, but verify the cookie JWT-style
-* We allow the app to attach arbitrary data about a user, and store it with the user record
+* We allow the app to optionally attach arbitrary data about a user, and store it with the user record
 * We allow easy implementation of different data stores
 
 # Workflows
