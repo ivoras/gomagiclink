@@ -37,7 +37,7 @@ See these examples for more info:
 5. Verify the challenge with `VerifyChallenge()`. If successful, it will return an `UserAuthRecord`
 6. Optionally attach custom user data to the `CustomData` field of the record and store the `AuthUserRecord` with `StoreUser()`. Note that this data will be stored and retrieved as JSON, so the `CustomData` needs to be of a type that can survive a round-trip through JSON. For example, `int`s will be returned as `float64`s.
 
-By the nature of this login system, unique users are represented by unique e-mail addresses.
+By the nature of this login system, unique users are represented by unique e-mail addresses, but each such user also gets a UUID.
 
 ## Session
 
