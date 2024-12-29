@@ -30,17 +30,23 @@ See these examples for more info:
 
 ## Registration / Login
 
-1. Construct an `AuthUserDatabase`
-2. Construct an `AuthMagicLinkController`
-3. Collect user e-mail (web form, etc)
+1. Construct an `AuthUserDatabase` - there are examples for SQL databases and a plain file system storage in this repo
+2. Construct an `AuthMagicLinkController` - this is the code that does crypto and login
+3. Collect user e-mail (with a web form, etc)
 4. Generate a challenge string (magic cookie) with `GenerateChallenge()`, construct a link with it and send it to user's e-mail
 5. Verify the challenge with `VerifyChallenge()`. If successful, it will return an `UserAuthRecord`
 6. Optionally attach custom user data to the `CustomData` field of the record and store the `AuthUserRecord` with `StoreUser()`. Note that this data will be stored and retrieved as JSON, so the `CustomData` needs to be of a type that can survive a round-trip through JSON. For example, `int`s will be returned as `float64`s.
 
+By the nature of this login system, unique users are represented by unque e-mail addresses.
+
 ## Session
 
-1. Generate a session ID with `GenerateSessionId()`, send to browser, e.g. as a HTTP cookie, or a Bearer token
+After a magic link chanllenge has been completed, you can optionally create a session id to store in a cookie.
+
+1. Generate a session ID with `GenerateSessionId()`, send it to the browser, e.g. as a HTTP cookie, or a Bearer token
 2. Each time the browser sends back the session ID, verify it with `VerifySessionId()`. It will return an `AuthUserRecord` if successful. Inspect the `CustomData` field if you've set it before.
+
+The `AuthUserRecord` is a structure where you can attach arbitrary information, such as information about the user's profile, or an app-specific user ID if you don't like using UUIDs that this library uses.
 
 ## Sending e-mail
 
