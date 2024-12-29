@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/google/uuid"
 	"github.com/ivoras/gomagiclink"
-	"github.com/oklog/ulid/v2"
 )
 
 // Stores data in a flat directory with files named like $<userid>$<email>.json
 type FileSystemStorage struct {
 	Directory      string
-	ID2Filename    map[ulid.ULID]string
+	ID2Filename    map[uuid.UUID]string
 	Email2Filename map[string]string
 }
 
@@ -39,7 +39,7 @@ func NewFileSystemStorage(dir string) (result *FileSystemStorage, err error) {
 	}
 	result = &FileSystemStorage{
 		Directory:      dir,
-		ID2Filename:    map[ulid.ULID]string{},
+		ID2Filename:    map[uuid.UUID]string{},
 		Email2Filename: map[string]string{},
 	}
 	// Read existing files
@@ -52,7 +52,7 @@ func NewFileSystemStorage(dir string) (result *FileSystemStorage, err error) {
 		if m == nil {
 			return nil, fmt.Errorf("cannot parse filename: %s", files[f])
 		}
-		id, err := ulid.ParseStrict(m[1])
+		id, err := uuid.Parse(m[1])
 		if err != nil {
 			return nil, err
 		}
@@ -90,7 +90,7 @@ func (fss *FileSystemStorage) getUserFromFileName(fileName string) (user *gomagi
 	return user, nil
 }
 
-func (fss *FileSystemStorage) GetUserById(id ulid.ULID) (user *gomagiclink.AuthUserRecord, err error) {
+func (fss *FileSystemStorage) GetUserById(id uuid.UUID) (user *gomagiclink.AuthUserRecord, err error) {
 	fileName, ok := fss.ID2Filename[id]
 	if !ok {
 		return nil, gomagiclink.ErrUserNotFound

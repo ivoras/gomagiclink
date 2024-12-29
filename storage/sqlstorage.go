@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/ivoras/gomagiclink"
-	"github.com/oklog/ulid/v2"
 )
 
 type SQLStorage struct {
@@ -18,7 +18,7 @@ type SQLStorage struct {
 // This storage engine will use a single table in the SQL database,
 // that needs to have these fields:
 //
-//	id		Some type that can store the 16-byte ULID, either as a text field (26 characters), or a dedicated type (PostgreSQL has a plugin for the native ULID type)
+//	id		Some type that can store the 16-byte UUID, either as a text field, or a dedicated type (PostgreSQL has a plugin for the native UUID type)
 //	email	text
 //	data	A type that can accept a long JSON string, either as text, or as a dedicated type (PostgreSQL has a native JSONB field)
 //
@@ -46,7 +46,7 @@ func (st *SQLStorage) StoreUser(user *gomagiclink.AuthUserRecord) (err error) {
 	return
 }
 
-func (st *SQLStorage) GetUserById(id ulid.ULID) (user *gomagiclink.AuthUserRecord, err error) {
+func (st *SQLStorage) GetUserById(id uuid.UUID) (user *gomagiclink.AuthUserRecord, err error) {
 	var userJson string
 	err = st.db.QueryRow(fmt.Sprintf("SELECT data FROM %s WHERE id=?", st.tableName), id.String()).Scan(&userJson)
 	if err != nil {
