@@ -1,5 +1,7 @@
 package main
 
+// This is an example web app for the gomagiclink module, implementing the magic link login workflow.
+
 import (
 	"database/sql"
 	"fmt"
