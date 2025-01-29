@@ -265,13 +265,13 @@ func (mlc *AuthMagicLinkController) VerifySessionId(sessionId string) (user *Aut
 
 // AuthUser represents user data
 type AuthUserRecord struct {
-	ID              uuid.UUID `json:"id"` // Unique identifier
-	Enabled         bool      `json:"enabled"`
-	Email           string    `json:"email"` // Also must be unique
-	AccessLevel     int       `json:"access_level"`
-	FirstLoginTime  time.Time `json:"first_login_time"`
-	RecentLoginTime time.Time `json:"recent_login_time"`
-	CustomData      any       `json:"custom_data"` // Apps can attach any kind of custom data to the user record
+	ID              uuid.UUID         `json:"id"` // Unique identifier
+	Enabled         bool              `json:"enabled"`
+	Email           string            `json:"email"` // Also must be unique
+	AccessLevel     int               `json:"access_level"`
+	FirstLoginTime  time.Time         `json:"first_login_time"`
+	RecentLoginTime time.Time         `json:"recent_login_time"`
+	CustomData      map[string]string `json:"custom_data"` // Apps can attach custom data to the user record
 }
 
 // NewAuthUserRecords constructs a new AuthUserRecord. This function isn't normally

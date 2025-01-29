@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/ivoras/gomagiclink"
@@ -108,8 +109,9 @@ func wwwRoot(w http.ResponseWriter, r *http.Request) {
 
 	// This is the actual web app. We're just incrementing the counter here and making
 	// use of the CustomData feature.
+	n, _ := strconv.Atoi(user.CustomData["n"])
 
-	user.CustomData = user.CustomData.(float64) + 1
+	user.CustomData["n"] = strconv.Itoa(n + 1)
 	err = mlink.StoreUser(user)
 	if err != nil {
 		wwwError(w, http.StatusInternalServerError, "Can't store user record")
@@ -124,10 +126,10 @@ func wwwRoot(w http.ResponseWriter, r *http.Request) {
 
 	p.tpl.Execute(w, struct {
 		Title   string
-		Counter int
+		Counter string
 	}{
 		Title:   p.Title,
-		Counter: int(user.CustomData.(float64)),
+		Counter: user.CustomData["n"],
 	})
 }
 
@@ -212,7 +214,7 @@ func wwwVerifyChallenge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user.CustomData == nil {
-		user.CustomData = float64(0) // CustomData goes through JSON, so all numbers are float64
+		user.CustomData = map[string]string{"n": "1"} // CustomData goes through JSON, so all numbers are float64
 	}
 	if count, err := mlink.GetUserCount(); err == nil && count == 0 { // 1st user, make it an admin
 		user.AccessLevel = 1000

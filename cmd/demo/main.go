@@ -54,7 +54,7 @@ func main() {
 		panic(err)
 	}
 
-	user.CustomData = "data"
+	user.CustomData = map[string]string{"data": "foo"}
 
 	err = magicLinkController.StoreUser(user)
 	if err != nil {
@@ -75,7 +75,7 @@ func main() {
 		panic("user.ID != user2.ID")
 	}
 
-	if (user2.CustomData).(string) != "data" {
+	if user2.CustomData["data"] != "foo" {
 		panic("CustomData mismatch")
 	}
 
