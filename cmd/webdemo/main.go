@@ -28,7 +28,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	mlStorage, err := storage.NewPgSQLStorage(db, "magiclink")
+	mlStorage, err := storage.NewSQLiteStorage(db, "magiclink")
 	if err != nil {
 		panic(err)
 	}
