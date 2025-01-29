@@ -19,7 +19,7 @@ import (
 
 const cookieName = "MLCOOKIE"
 const cookieDurationSeconds = 3600
-const wwwListen = "localhost:8002"
+const wwwListen = "localhost:8003"
 
 var mlink *gomagiclink.AuthMagicLinkController
 
@@ -28,7 +28,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	mlStorage, err := storage.NewSQLStorage(db, "magiclink")
+	mlStorage, err := storage.NewPgSQLStorage(db, "magiclink")
 	if err != nil {
 		panic(err)
 	}
